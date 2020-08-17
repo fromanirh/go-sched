@@ -1,11 +1,11 @@
 go-sched
 ========
 
-.. image:: https://godoc.org/github.com/cenkalti/go-sched?status.png
-   :target: https://godoc.org/github.com/cenkalti/go-sched
+.. image:: https://godoc.org/github.com/fromanirh/go-sched?status.png
+   :target: https://godoc.org/github.com/fromanirh/go-sched
    
-.. image:: https://travis-ci.org/cenkalti/go-sched.png
-   :target: https://travis-ci.org/cenkalti/go-sched
+.. image:: https://travis-ci.org/fromanirh/go-sched.png
+   :target: https://travis-ci.org/fromanirh/go-sched
 
 - A generally useful event scheduler in Go.
 - Ported from Python's sched_ module.
@@ -23,7 +23,7 @@ Usage
     	"fmt"
     	"math/rand"
     	"time"
-    	sched "github.com/cenkalti/go-sched"
+    	sched "github.com/fromanirh/go-sched"
     )
 
     func main() {
