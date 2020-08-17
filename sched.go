@@ -8,39 +8,52 @@ import (
 )
 
 type Event struct {
-	time		time.Time
-	action		func ()
+	ts     time.Time
+	action func()
 }
 
-func (e *Event) Less(other interface {}) bool {
-	return e.time.Before(other.(*Event).time)
+func (e *Event) Less(other interface{}) bool {
+	return e.ts.Before(other.(*Event).ts)
 }
 
 type Scheduler struct {
-	queue		*pq.Queue
-	lock		sync.RWMutex
+	now   func() time.Time
+	sleep func(d time.Duration)
+	queue *pq.Queue
+	lock  sync.RWMutex
 }
 
-// New creates a new scheduler and return it's pointer.
+// NewWithHooks creates a new scheduler replacing time functions, and return it's pointer.
+func NewWithHooks(now func() time.Time, sleep func(d time.Duration)) *Scheduler {
+	return &Scheduler{
+		now:   now,
+		sleep: sleep,
+		queue: pq.New(0),
+	}
+}
+
+// News creates a new scheduler, and return it's pointer.
 func New() *Scheduler {
 	return &Scheduler{
-		queue:    pq.New(0),
+		now:   time.Now,
+		sleep: time.Sleep,
+		queue: pq.New(0),
 	}
 }
 
 // EnterAbs adds a new event to the queue at an absolute time.
-func (s *Scheduler) EnterAbs(time time.Time, action func ()) Event {
+func (s *Scheduler) EnterAbs(ts time.Time, action func()) Event {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	event := Event{time, action}
+	event := Event{ts, action}
 	s.queue.Enqueue(&event)
 	return event
 }
 
 // Enter adds an new event to the queue to run after delay.
-func (s *Scheduler) Enter(delay time.Duration, action func ()) Event {
-	diff := time.Now().Add(delay)
+func (s *Scheduler) Enter(delay time.Duration, action func()) Event {
+	diff := s.now().Add(delay)
 	return s.EnterAbs(diff, action)
 }
 
@@ -73,9 +86,9 @@ func (s *Scheduler) Run() {
 		}
 
 		event := min.(*Event)
-		now := time.Now()
+		now := s.now()
 
-		if event.time.After(now) {
+		if event.ts.After(now) {
 			delay = true
 		} else {
 			delay = false
@@ -84,7 +97,7 @@ func (s *Scheduler) Run() {
 		s.lock.Unlock()
 
 		if delay {
-			time.Sleep(event.time.Sub(now))
+			s.sleep(event.ts.Sub(now))
 		} else {
 			go event.action()
 			runtime.Gosched() // Don't know if this is required
