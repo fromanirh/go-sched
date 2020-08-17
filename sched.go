@@ -17,27 +17,31 @@ func (e *Event) Less(other interface{}) bool {
 }
 
 type Scheduler struct {
-	now   func() time.Time
-	sleep func(d time.Duration)
-	queue *pq.Queue
-	lock  sync.RWMutex
+	// if true, executes each event in a separate goroutine.
+	useGoroutines bool
+	now           func() time.Time
+	sleep         func(d time.Duration)
+	queue         *pq.Queue
+	lock          sync.RWMutex
 }
 
 // NewWithHooks creates a new scheduler replacing time functions, and return it's pointer.
-func NewWithHooks(now func() time.Time, sleep func(d time.Duration)) *Scheduler {
+func NewWithHooks(useGoroutines bool, now func() time.Time, sleep func(d time.Duration)) *Scheduler {
 	return &Scheduler{
-		now:   now,
-		sleep: sleep,
-		queue: pq.New(0),
+		useGoroutines: useGoroutines,
+		now:           now,
+		sleep:         sleep,
+		queue:         pq.New(0),
 	}
 }
 
 // News creates a new scheduler, and return it's pointer.
 func New() *Scheduler {
 	return &Scheduler{
-		now:   time.Now,
-		sleep: time.Sleep,
-		queue: pq.New(0),
+		useGoroutines: true,
+		now:           time.Now,
+		sleep:         time.Sleep,
+		queue:         pq.New(0),
 	}
 }
 
@@ -98,9 +102,11 @@ func (s *Scheduler) Run() {
 
 		if delay {
 			s.sleep(event.ts.Sub(now))
-		} else {
+		} else if s.useGoroutines {
 			go event.action()
 			runtime.Gosched() // Don't know if this is required
+		} else {
+			event.action()
 		}
 	}
 }
